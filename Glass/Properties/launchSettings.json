@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Glass": {
+      "commandName": "Project",
+      "commandLineArgs": "file:///C:/Drive/Programming2/HTML/HTML-Notify/GUI/index.html /taskBarIcon"
+    }
+  }
+}
