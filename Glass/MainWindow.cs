@@ -28,8 +28,6 @@ namespace Glass
             this.webView.BackColor = this.BackColor;
             this.webView.DefaultBackgroundColor = Color.Transparent;
 
-            this.webView.NavigationCompleted += this.WebView_NavigationCompleted;
-
             this.Controls.Add(this.webView);
 
             this.BackColor = Color.Red; // Only color that appears to support this behavior?
@@ -122,11 +120,6 @@ namespace Glass
             this.iconSync.Update();
         }
 
-        private void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
-        {
-
-        }
-
         private void Usage()
         {
             MessageBox.Show(
@@ -146,37 +139,30 @@ namespace Glass
             this.webView.CoreWebView2.Navigate(this.url);
         }
 
-        private void MainWindow_Activated(object sender, EventArgs e)
+        private void UpdateFrame(FormBorderStyle borderStyle)
         {
             var size = this.Size;
             var location = this.Location;
 
             this.SuspendLayout();
-            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.FormBorderStyle = borderStyle;
             this.Size = size;
             this.Location = location;
-            this.RedockWebView();
+            this.webView.Dock = DockStyle.None;
+            this.webView.Dock = DockStyle.Fill;
+            this.webView.Invalidate();
             this.ResumeLayout(true);
+        }
+
+        private void MainWindow_Activated(object sender, EventArgs e)
+        {
+            this.UpdateFrame(FormBorderStyle.Sizable);
+            this.webView.Focus();
         }
 
         private void MainWindow_Deactivate(object sender, EventArgs e)
         {
-            var size = this.Size;
-            var location = this.Location;
-
-            this.SuspendLayout();
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.Size = size;
-            this.Location = location;
-            this.RedockWebView();
-            this.ResumeLayout(true);
-        }
-
-        private void RedockWebView()
-        {
-            this.webView.Dock = DockStyle.None;
-            this.webView.Dock = DockStyle.Fill;
-            this.webView.Invalidate();
+            this.UpdateFrame(FormBorderStyle.None);
         }
     }
 }
