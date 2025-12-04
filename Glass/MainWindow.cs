@@ -18,6 +18,7 @@ namespace Glass
         string programFilename = string.Empty;
         string url = string.Empty;
         Boolean closeRequested = false;
+        Boolean relaunched = false;
 
         public MainWindow()
         {
@@ -41,11 +42,30 @@ namespace Glass
             this.refreshTimer.Tick += this.RefreshTimer_Tick;
 
             // Evaluate command line options
+            if (EvaluateArguments()) {
+
+                // Shortcuts can override the taskbar icon sync. If taskbar icon requested, relaunch.
+                this.RelaunchIfNeeded();
+
+                if (!this.closeRequested)
+                {
+                    // Begin processing
+                    this.iconSync.Enable();
+                    this.refreshTimer.Enabled = true;
+                }
+            }
+            else
+            {
+                this.Usage();
+                this.closeRequested = true;
+            }
+        }
+
+        private bool EvaluateArguments()
+        {
             var cmdlineArgs = Environment.GetCommandLineArgs();
 
             this.programFilename = Path.GetFileName(cmdlineArgs[0]);
-
-            var relaunched = false;
 
             if (cmdlineArgs.Length > 1)
             {
@@ -65,7 +85,7 @@ namespace Glass
 
                     if (lowerArg == RelaunchedSwitch.ToLower())
                     {
-                        relaunched = true;
+                        this.relaunched = true;
                     }
                 }
 
@@ -74,44 +94,39 @@ namespace Glass
                 bool isValid = Uri.TryCreate(this.url, UriKind.Absolute, out Uri? uriResult)
                        && (uriResult.Scheme == Uri.UriSchemeHttp ||
                            uriResult.Scheme == Uri.UriSchemeHttps ||
-                           uriResult.Scheme == Uri.UriSchemeFile);
+                           uriResult.Scheme == Uri.UriSchemeFile);                
 
-                if (!isValid)
-                {
-                    this.Usage();
-                    this.closeRequested = true;
-                    return;
-                }
+                return isValid;
+            }
 
-                // Shortcuts can override the icon. If taskbar icon requested, relaunch.
-                if (!relaunched && this.ShowInTaskbar)
-                {
-                    var args = new List<string>
+            return false;
+        }
+
+        private void RelaunchIfNeeded()
+        {
+            if (!this.relaunched && this.ShowInTaskbar)
+            {
+                var args = new List<string>
                     {
                         $"\"{this.url}\"",
                         TaskBarIconSwitch,
                         RelaunchedSwitch,
-                        (this.iconSync.ShowSysTrayIcon ? SysTrayIconSwitch : "")                        
+                        (this.iconSync.ShowSysTrayIcon ? SysTrayIconSwitch : "")
                     };
 
-                    var filename = this.programFilename;
+                var filename = this.programFilename;
 
-                    // A DLL cannot be used to start a process by itself. Launch the EXE.
-                    if (Path.GetExtension(filename).ToLower() == ".dll")
-                    {
-                        filename = Path.Combine(
-                            Path.GetDirectoryName(filename) ?? "", 
-                            $"{Path.GetFileNameWithoutExtension(filename)}.exe");
-                    }
-
-                    Process.Start(filename, string.Join(" ", args));
-                    this.closeRequested = true;
-                    return;
+                // A DLL cannot be used to start a process by itself. Launch the EXE.
+                if (Path.GetExtension(filename).ToLower() == ".dll")
+                {
+                    filename = Path.Combine(
+                        Path.GetDirectoryName(filename) ?? "",
+                        $"{Path.GetFileNameWithoutExtension(filename)}.exe");
                 }
 
-                // Begin processing
-                this.iconSync.Enable();
-                this.refreshTimer.Enabled = true;
+                Process.Start(filename, string.Join(" ", args));
+
+                this.closeRequested = true;
             }
         }
 
